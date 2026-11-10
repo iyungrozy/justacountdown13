@@ -1,0 +1,6 @@
+{
+  "name": "Ethereal Horizon Countdown",
+  "description": "Atmospheric cinematic countdown timer with ethereal particle aura, audio waveform beam, stellar glints, and ambient audio synthesizer matching the teaser visual.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
