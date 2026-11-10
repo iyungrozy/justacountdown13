@@ -17,6 +17,18 @@ export interface TimeRemaining {
   formattedMs: string;
 }
 
+/** Snapshot of the digits currently painted by the canvas. */
+export interface DisplayTime {
+  days: string;
+  hours: string;
+  minutes: string;
+  seconds: string;
+  /** Whole seconds left on the execution clock */
+  totalSeconds: number;
+  isZero: boolean;
+  isCinematic: boolean;
+}
+
 export function padZero(num: number, targetLength = 2): string {
   const s = Math.max(0, Math.floor(num)).toString();
   return s.padStart(targetLength, '0');
@@ -63,6 +75,26 @@ export function formatDurationToParts(totalSeconds: number): { days: number; hou
   return { days, hours, minutes, seconds };
 }
 
+export function displayTimeFromSeconds(
+  totalSeconds: number,
+  isCinematic = false,
+): DisplayTime {
+  const safe = Math.max(0, Math.floor(totalSeconds));
+  const days = Math.floor(safe / 86400);
+  const hours = Math.floor((safe % 86400) / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  const seconds = safe % 60;
+  return {
+    days: padZero(days),
+    hours: padZero(hours),
+    minutes: padZero(minutes),
+    seconds: padZero(seconds),
+    totalSeconds: safe,
+    isZero: safe <= 0,
+    isCinematic,
+  };
+}
+
 // Exactly matches user's uploaded videoframe_183295_b04f7a20.png: 02:00:35:48
 export const USER_IMAGE_START_SECONDS =
   2 * 86400 + 0 * 3600 + 35 * 60 + 48;
@@ -85,3 +117,12 @@ export const PHASE3_SECONDS =
 // Climax spectral surge phase from videoframe_193516.png: 01:00:00:01
 export const CLIMAX_SURGE_SECONDS =
   1 * 86400 + 0 * 3600 + 0 * 60 + 1;
+
+/**
+ * Genshin Impact 7.2 reset: 16 December 2026, 10:00 WIB (UTC+7), the end of the
+ * Asia maintenance window (11:00 UTC+8) and 42 days after 7.1.
+ *
+ * Stored as an absolute instant, so every visitor counts down to the same
+ * moment no matter which timezone their clock is set to.
+ */
+export const DEFAULT_TARGET_TIMESTAMP = new Date('2026-12-16T10:00:00+07:00').getTime();

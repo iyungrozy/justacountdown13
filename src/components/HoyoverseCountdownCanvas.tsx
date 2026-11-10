@@ -5,15 +5,12 @@ export type CountdownTheme = 'void' | 'gold' | 'crimson' | 'cyan';
 
 interface HoyoverseCountdownCanvasProps {
   isMuted: boolean;
-  onToggleMute: () => void;
-  isPaused: boolean;
   mode: 'cinematic' | 'live';
   targetTimestamp: number;
   theme?: CountdownTheme;
   absorptionIntensity?: number;
-  onTimeUpdate?: (days: string, hours: string, minutes: string, seconds: string) => void;
+  dangerTicks?: boolean;
   onWhiteoutChange?: (isWhiteout: boolean) => void;
-  onResetCountdown?: () => void;
 }
 
 interface SmokeNeedle {
@@ -74,15 +71,12 @@ interface ClimaxShockwave {
 
 export const HoyoverseCountdownCanvas: React.FC<HoyoverseCountdownCanvasProps> = ({
   isMuted,
-  onToggleMute,
-  isPaused,
   mode = 'cinematic',
   targetTimestamp,
   theme = 'void',
   absorptionIntensity = 1.0,
-  onTimeUpdate,
+  dangerTicks = true,
   onWhiteoutChange,
-  onResetCountdown,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -94,12 +88,25 @@ export const HoyoverseCountdownCanvas: React.FC<HoyoverseCountdownCanvasProps> =
 
   const hasPlayedClimaxAudioRef = useRef<boolean>(false);
   const lastSecondRef = useRef<string>('');
+  const launchKeyRef = useRef<string>('');
+  const isMutedRef = useRef(isMuted);
+  const dangerTicksRef = useRef(dangerTicks);
+
+  isMutedRef.current = isMuted;
+  dangerTicksRef.current = dangerTicks;
 
   useEffect(() => {
     const cv = canvasRef.current;
     if (!cv) return;
     const g = cv.getContext('2d');
     if (!g) return;
+
+    // Re-play the cinematic warp whenever the protocol is re-armed.
+    const launchKey = `${mode}:${targetTimestamp}`;
+    if (launchKeyRef.current !== launchKey) {
+      launchKeyRef.current = launchKey;
+      animTimeRef.current.t0 = performance.now();
+    }
 
     const W = 1920;
     const H = 1080;
@@ -949,6 +956,7 @@ export const HoyoverseCountdownCanvas: React.FC<HoyoverseCountdownCanvasProps> =
       let minsStr = '35';
       let secsStr = '48';
       let isTimeZero = false;
+      let totalSecondsShown = 0;
 
       if (mode === 'cinematic') {
         let tot: number;
@@ -956,7 +964,7 @@ export const HoyoverseCountdownCanvas: React.FC<HoyoverseCountdownCanvasProps> =
           tot = Math.round(A + (B - A) * (p < 1 ? e : 1));
         } else {
           const elapsedAfterWarp = Math.max(0, tm - 9.2);
-          const frameTick = isPaused ? 0 : Math.floor(elapsedAfterWarp * 30);
+          const frameTick = Math.floor(elapsedAfterWarp * 30);
           tot = Math.max(0, A - frameTick);
         }
         if (tot <= 0) isTimeZero = true;
@@ -965,6 +973,7 @@ export const HoyoverseCountdownCanvas: React.FC<HoyoverseCountdownCanvasProps> =
         const ss = Math.floor(tot / 60) % 60;
         const mm = Math.floor(tot / 3600) % 60;
         const hh = Math.floor(tot / 216000);
+        totalSecondsShown = hh * 86400 + mm * 3600 + ss * 60 + ff;
         const parts = [hh, mm, ss, ff].map((v) => String(v).padStart(2, '0'));
         s = parts.join('');
         daysStr = parts[0];
@@ -976,6 +985,7 @@ export const HoyoverseCountdownCanvas: React.FC<HoyoverseCountdownCanvasProps> =
         if (diffMs <= 0) isTimeZero = true;
 
         const totalSec = Math.floor(diffMs / 1000);
+        totalSecondsShown = totalSec;
         const days = Math.floor(totalSec / 86400);
         const hours = Math.floor((totalSec % 86400) / 3600);
         const mins = Math.floor((totalSec % 3600) / 60);
@@ -1002,15 +1012,14 @@ export const HoyoverseCountdownCanvas: React.FC<HoyoverseCountdownCanvasProps> =
         hasPlayedClimaxAudioRef.current = false;
       }
 
-      if (onTimeUpdate) {
-        onTimeUpdate(daysStr, hoursStr, minsStr, secsStr);
-      }
+      const stamp = `${daysStr}:${hoursStr}:${minsStr}:${secsStr}`;
+      const isWarping = mode === 'cinematic' && p > 0.01;
 
-      // Trigger subtle majestic AI Chrono Tick on second change
-      if (lastSecondRef.current !== secsStr && !isTimeZero) {
-        lastSecondRef.current = secsStr;
-        if (!isMuted) {
-          soundEngine.playAITick();
+      // Chronometric pulse: one per displayed second, increasingly hostile.
+      if (!isWarping && stamp !== lastSecondRef.current && !isTimeZero) {
+        lastSecondRef.current = stamp;
+        if (!isMutedRef.current && dangerTicksRef.current) {
+          soundEngine.playChronoPulse(mode === 'cinematic' ? null : totalSecondsShown);
         }
       }
 
@@ -1272,51 +1281,16 @@ export const HoyoverseCountdownCanvas: React.FC<HoyoverseCountdownCanvasProps> =
 
     animId = requestAnimationFrame(draw);
 
-    const handlePointerDown = () => {
-      soundEngine.initContext();
-
-      // If already in pure whiteout, clicking allows restarting
-      if (
-        zeroClimaxStartSec >= 0 &&
-        (performance.now() - animTimeRef.current.t0) / 1000 - zeroClimaxStartSec >= 4.0
-      ) {
-        if (onResetCountdown) {
-          onResetCountdown();
-        }
-        return;
-      }
-
-      if (isMuted) {
-        onToggleMute();
-      } else {
-        soundEngine.startAIAmbient();
-      }
-    };
-
-    window.addEventListener('pointerdown', handlePointerDown);
-
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', fit);
-      window.removeEventListener('pointerdown', handlePointerDown);
     };
-  }, [
-    isMuted,
-    onToggleMute,
-    isPaused,
-    mode,
-    targetTimestamp,
-    theme,
-    absorptionIntensity,
-    onTimeUpdate,
-    onWhiteoutChange,
-    onResetCountdown,
-  ]);
+  }, [mode, targetTimestamp, theme, absorptionIntensity, onWhiteoutChange]);
 
   return (
     <div
       ref={containerRef}
-      className="relative w-screen h-screen overflow-hidden bg-[#0a0a10] flex items-center justify-center cursor-pointer select-none"
+      className="relative w-screen h-screen overflow-hidden bg-[#0a0a10] flex items-center justify-center cursor-default select-none"
     >
       <canvas
         ref={canvasRef}

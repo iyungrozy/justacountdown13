@@ -1,6 +1,6 @@
 {
-  "name": "Ethereal Horizon Countdown",
-  "description": "Atmospheric cinematic countdown timer with ethereal particle aura, audio waveform beam, stellar glints, and ambient audio synthesizer matching the teaser visual.",
+  "name": "Teyvat Reset Countdown",
+  "description": "A real-time countdown to the Genshin Impact 7.2 reset on 16 December 2026, 10:00 WIB (UTC+7), with the teaser backdrop and the trailer score.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }

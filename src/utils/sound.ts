@@ -1,40 +1,26 @@
 /**
- * Sound Engine for Ethereal Horizon Countdown
- * Generates continuous majestic AI cosmic ambient drone ("Resetting Teyvat"),
- * subtle tactical chronometric ticks, glitch surges, and cataclysmic zero-impact audio.
+ * Synthesised feedback for the countdown.
+ *
+ * The background score comes exclusively from YouTube; this engine only makes
+ * the chronometric tick (escalating with the remaining time), the reset glitch
+ * and the zero-point climax.
  */
+
+function getTickTier(totalSeconds: number): number {
+  if (totalSeconds > 7 * 86400) return 0;
+  if (totalSeconds > 86400) return 1;
+  if (totalSeconds > 6 * 3600) return 2;
+  if (totalSeconds > 3600) return 3;
+  if (totalSeconds > 600) return 4;
+  if (totalSeconds > 60) return 5;
+  return 6;
+}
 
 class SoundEngine {
   private ctx: AudioContext | null = null;
-  private isMuted: boolean = false;
+  private isMuted = false;
   private masterGain: GainNode | null = null;
-
-  // Continuous Majestic AI Ambient Drone ("Resetting Teyvat World Matrix")
-  private isAmbientRunning: boolean = false;
-  private subOsc1: OscillatorNode | null = null;
-  private subOsc2: OscillatorNode | null = null;
-  private subFilter: BiquadFilterNode | null = null;
-  private subGain: GainNode | null = null;
-
-  // High Ethereal AI Chime Pad
-  private padOsc1: OscillatorNode | null = null;
-  private padOsc2: OscillatorNode | null = null;
-  private padFilter: BiquadFilterNode | null = null;
-  private padGain: GainNode | null = null;
-  private lfo: OscillatorNode | null = null;
-  private lfoGain: GainNode | null = null;
-
-  private trailerAudio: HTMLAudioElement | null = null;
-
-  constructor() {
-    if (typeof window !== 'undefined') {
-      try {
-        this.trailerAudio = new Audio('/audio/trailer_countdown_audio.mp3');
-        this.trailerAudio.preload = 'auto';
-        this.trailerAudio.loop = true;
-      } catch {}
-    }
-  }
+  private masterLevel = 0.6;
 
   public initContext() {
     if (!this.ctx && typeof window !== 'undefined') {
@@ -44,7 +30,10 @@ class SoundEngine {
       if (AudioCtx) {
         this.ctx = new AudioCtx();
         this.masterGain = this.ctx.createGain();
-        this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.6, this.ctx.currentTime);
+        this.masterGain.gain.setValueAtTime(
+          this.isMuted ? 0 : this.masterLevel,
+          this.ctx.currentTime,
+        );
         this.masterGain.connect(this.ctx.destination);
       }
     }
@@ -53,132 +42,16 @@ class SoundEngine {
     }
   }
 
-  /**
-   * Starts the continuous, subtle yet majestic AI Ambient Drone
-   * Feels like a quantum AI supercomputer calculating the dissolution & reset of Teyvat
-   */
-  public startAIAmbient() {
-    this.initContext();
-    if (!this.ctx || !this.masterGain || this.isAmbientRunning) return;
-
-    try {
-      const now = this.ctx.currentTime;
-
-      // 1. Deep Sub-Bass Cosmic Foundation (55Hz / A1 & 55.4Hz with slow phase beating)
-      this.subFilter = this.ctx.createBiquadFilter();
-      this.subFilter.type = 'lowpass';
-      this.subFilter.frequency.setValueAtTime(115, now);
-      this.subFilter.Q.setValueAtTime(2.8, now);
-
-      this.subOsc1 = this.ctx.createOscillator();
-      this.subOsc1.type = 'sine';
-      this.subOsc1.frequency.setValueAtTime(55, now); // A1
-
-      this.subOsc2 = this.ctx.createOscillator();
-      this.subOsc2.type = 'triangle';
-      this.subOsc2.frequency.setValueAtTime(55.28, now); // Slow warm chorus beat
-
-      this.subGain = this.ctx.createGain();
-      // "Tipis aja" - subtle and warm volume
-      this.subGain.gain.setValueAtTime(0, now);
-      this.subGain.gain.setTargetAtTime(0.18, now, 1.5);
-
-      this.subOsc1.connect(this.subFilter);
-      this.subOsc2.connect(this.subFilter);
-      this.subFilter.connect(this.subGain);
-      this.subGain.connect(this.masterGain);
-
-      // 2. High Ethereal AI Choir Pad (Cosmic Firmament Chime)
-      this.padFilter = this.ctx.createBiquadFilter();
-      this.padFilter.type = 'bandpass';
-      this.padFilter.frequency.setValueAtTime(520, now);
-      this.padFilter.Q.setValueAtTime(4.0, now);
-
-      // Slow breathing LFO to sweep the filter subtly
-      this.lfo = this.ctx.createOscillator();
-      this.lfo.frequency.setValueAtTime(0.08, now); // 12-second slow breath cycle
-      this.lfoGain = this.ctx.createGain();
-      this.lfoGain.gain.setValueAtTime(140, now);
-      this.lfo.connect(this.lfoGain);
-      this.lfoGain.connect(this.padFilter.frequency);
-
-      this.padOsc1 = this.ctx.createOscillator();
-      this.padOsc1.type = 'sine';
-      this.padOsc1.frequency.setValueAtTime(440, now); // A4
-
-      this.padOsc2 = this.ctx.createOscillator();
-      this.padOsc2.type = 'sine';
-      this.padOsc2.frequency.setValueAtTime(659.25, now); // E5 celestial fifth
-
-      this.padGain = this.ctx.createGain();
-      this.padGain.gain.setValueAtTime(0, now);
-      this.padGain.gain.setTargetAtTime(0.11, now, 2.0); // Soft, angelic, non-intrusive
-
-      this.padOsc1.connect(this.padFilter);
-      this.padOsc2.connect(this.padFilter);
-      this.padFilter.connect(this.padGain);
-      this.padGain.connect(this.masterGain);
-
-      this.subOsc1.start(now);
-      this.subOsc2.start(now);
-      this.padOsc1.start(now);
-      this.padOsc2.start(now);
-      this.lfo.start(now);
-
-      this.isAmbientRunning = true;
-    } catch {}
-  }
-
-  public stopAIAmbient() {
-    if (!this.isAmbientRunning || !this.ctx) return;
-    try {
-      const now = this.ctx.currentTime;
-      if (this.subGain) this.subGain.gain.setTargetAtTime(0, now, 0.2);
-      if (this.padGain) this.padGain.gain.setTargetAtTime(0, now, 0.2);
-
-      setTimeout(() => {
-        try {
-          this.subOsc1?.stop();
-          this.subOsc2?.stop();
-          this.padOsc1?.stop();
-          this.padOsc2?.stop();
-          this.lfo?.stop();
-          this.subOsc1?.disconnect();
-          this.subOsc2?.disconnect();
-          this.padOsc1?.disconnect();
-          this.padOsc2?.disconnect();
-          this.lfo?.disconnect();
-          this.lfoGain?.disconnect();
-          this.subFilter?.disconnect();
-          this.padFilter?.disconnect();
-        } catch {}
-        this.isAmbientRunning = false;
-      }, 250);
-    } catch {
-      this.isAmbientRunning = false;
-    }
-  }
-
   public setMuted(muted: boolean): boolean {
     this.isMuted = muted;
     this.initContext();
-
     if (this.ctx && this.masterGain) {
-      const now = this.ctx.currentTime;
-      this.masterGain.gain.setTargetAtTime(muted ? 0 : 0.6, now, 0.05);
+      this.masterGain.gain.setTargetAtTime(
+        muted ? 0 : this.masterLevel,
+        this.ctx.currentTime,
+        0.05,
+      );
     }
-
-    if (!muted) {
-      this.startAIAmbient();
-      if (this.trailerAudio) {
-        this.trailerAudio.muted = false;
-      }
-    } else {
-      if (this.trailerAudio) {
-        this.trailerAudio.muted = true;
-      }
-    }
-
     return this.isMuted;
   }
 
@@ -190,40 +63,133 @@ class SoundEngine {
     return this.isMuted;
   }
 
+  private beep(
+    at: number,
+    frequency: number,
+    peak: number,
+    duration: number,
+    type: OscillatorType = 'sine',
+  ) {
+    if (!this.ctx || !this.masterGain) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(frequency, at);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(80, frequency * 0.55), at + duration);
+
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(peak, at + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + duration);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(at);
+    osc.stop(at + duration + 0.02);
+  }
+
+  private subThump(at: number, level: number, frequency = 72) {
+    if (!this.ctx || !this.masterGain) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(frequency, at);
+    osc.frequency.exponentialRampToValueAtTime(frequency * 0.55, at + 0.18);
+
+    const peak = 0.032 + level * 0.008;
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(peak, at + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.26);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(at);
+    osc.stop(at + 0.28);
+  }
+
+  private noiseClick(at: number, level: number) {
+    if (!this.ctx || !this.masterGain) return;
+    const length = Math.floor(this.ctx.sampleRate * 0.045);
+    const buffer = this.ctx.createBuffer(1, length, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < length; i++) {
+      data[i] = (Math.random() * 2 - 1) * (1 - i / length);
+    }
+
+    const source = this.ctx.createBufferSource();
+    source.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.setValueAtTime(2200 + level * 380, at);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.028 + level * 0.008, at);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.05);
+
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+    source.start(at);
+    source.stop(at + 0.06);
+  }
+
   /**
-   * Subtle tactical chronometric AI pulse (ticks down Teyvat's world clock)
-   * High-tech, crystalline, quiet ("tipis aja, tapi megah")
+   * One tick per displayed second. `remainingSeconds` drives how hostile it
+   * sounds; `null` means "cinematic", which uses a fixed mid tension.
    */
-  public playAITick() {
+  public playChronoPulse(remainingSeconds: number | null) {
     if (this.isMuted) return;
     this.initContext();
     if (!this.ctx || !this.masterGain) return;
 
-    try {
-      const now = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      const filter = this.ctx.createBiquadFilter();
+    const tier = remainingSeconds === null ? 3 : getTickTier(Math.max(0, remainingSeconds));
+    const now = this.ctx.currentTime;
 
-      filter.type = 'bandpass';
-      filter.frequency.setValueAtTime(1800, now);
-      filter.Q.setValueAtTime(6.0, now);
+    const baseFrequency = [900, 1200, 1500, 1850, 2200, 2700, 3200][Math.min(tier, 6)];
+    const peak = [0.01, 0.016, 0.024, 0.032, 0.042, 0.055, 0.07][Math.min(tier, 6)];
+    const duration = 0.035 + tier * 0.008;
 
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(2200, now);
-      osc.frequency.exponentialRampToValueAtTime(540, now + 0.04);
+    const osc = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
 
-      // Very subtle volume ("tipis")
-      gain.gain.setValueAtTime(0.065, now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.045);
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(baseFrequency * 1.15, now);
+    filter.Q.setValueAtTime(5.5, now);
 
-      osc.connect(filter);
-      filter.connect(gain);
-      gain.connect(this.masterGain);
+    osc.type = tier <= 1 ? 'sine' : tier <= 3 ? 'triangle' : 'square';
+    osc.frequency.setValueAtTime(baseFrequency, now);
+    osc.frequency.exponentialRampToValueAtTime(baseFrequency * 0.34, now + duration);
 
-      osc.start(now);
-      osc.stop(now + 0.05);
-    } catch {}
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(peak, now + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration + 0.02);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + duration + 0.04);
+
+    if (tier >= 2) this.noiseClick(now, tier);
+    if (tier >= 3) this.subThump(now, tier - 3);
+    if (tier >= 6) this.beep(now + 0.12, 2600, 0.028, 0.06, 'square');
+
+    // Heartbeat: every 2s from 10 minutes out, every second under a minute.
+    if (tier >= 4) {
+      const safeSeconds = Math.floor(remainingSeconds ?? 0);
+      const interval = tier >= 5 ? 1 : 2;
+      if (safeSeconds % interval === 0) {
+        this.playHeartbeat(tier - 3);
+      }
+    }
+  }
+
+  private playHeartbeat(intensity = 1) {
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+    this.subThump(now, intensity * 2, 62);
+    this.subThump(now + 0.17, intensity, 48);
   }
 
   public playGlitch() {
@@ -240,20 +206,20 @@ class SoundEngine {
       osc.frequency.setValueAtTime(340, now);
       osc.frequency.exponentialRampToValueAtTime(55, now + 0.12);
 
-      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.setValueAtTime(0.16, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
 
       osc.connect(gain);
       gain.connect(this.masterGain);
-
       osc.start(now);
       osc.stop(now + 0.14);
-    } catch {}
+    } catch {
+      /* ignore */
+    }
   }
 
   /**
-   * Cataclysmic Singularity Sound: "RESETTING TEYVAT"
-   * Deep sub-bass firmament collapse, expanding shockwave rumble, and angelic/AI reboot chord
+   * Zero point: firmament collapse, shockwave and a clean reboot chord.
    */
   public playZeroClimax() {
     if (this.isMuted) return;
@@ -263,22 +229,18 @@ class SoundEngine {
     try {
       const now = this.ctx.currentTime;
 
-      // 1. Teyvat Firmament Collapse - Sub-Bass Drop (130Hz -> 24Hz)
       const subOsc = this.ctx.createOscillator();
       const subGain = this.ctx.createGain();
       subOsc.type = 'sine';
       subOsc.frequency.setValueAtTime(130, now);
       subOsc.frequency.exponentialRampToValueAtTime(24, now + 2.2);
-
-      subGain.gain.setValueAtTime(0.55, now);
+      subGain.gain.setValueAtTime(0.5, now);
       subGain.gain.exponentialRampToValueAtTime(0.0001, now + 4.2);
-
       subOsc.connect(subGain);
       subGain.connect(this.masterGain);
       subOsc.start(now);
       subOsc.stop(now + 4.3);
 
-      // 2. Resonant Shockwave Expansion (White Noise filter sweep)
       const bufferSize = this.ctx.sampleRate * 2.5;
       const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
       const output = noiseBuffer.getChannelData(0);
@@ -295,7 +257,7 @@ class SoundEngine {
       noiseFilter.frequency.exponentialRampToValueAtTime(65, now + 2.8);
 
       const noiseGain = this.ctx.createGain();
-      noiseGain.gain.setValueAtTime(0.38, now);
+      noiseGain.gain.setValueAtTime(0.35, now);
       noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 2.9);
 
       whiteNoise.connect(noiseFilter);
@@ -304,7 +266,6 @@ class SoundEngine {
       whiteNoise.start(now);
       whiteNoise.stop(now + 3.0);
 
-      // 3. Ethereal Samsara Reboot Chime Chord (A4, C#5, E5, A5, C#6)
       [440, 554.37, 659.25, 880, 1108.73].forEach((freq, idx) => {
         if (!this.ctx || !this.masterGain) return;
         const bellOsc = this.ctx.createOscillator();
@@ -314,7 +275,7 @@ class SoundEngine {
         bellOsc.frequency.setValueAtTime(freq, now + 0.08);
 
         bellGain.gain.setValueAtTime(0, now);
-        bellGain.gain.setValueAtTime(0.14 / (idx + 1), now + 0.08);
+        bellGain.gain.setValueAtTime(0.13 / (idx + 1), now + 0.08);
         bellGain.gain.exponentialRampToValueAtTime(0.0001, now + 3.8);
 
         bellOsc.connect(bellGain);
@@ -323,7 +284,6 @@ class SoundEngine {
         bellOsc.stop(now + 3.9);
       });
 
-      // 4. Genesis Portal Opening Swell & Whiteout Crescendo
       const swellOsc1 = this.ctx.createOscillator();
       const swellOsc2 = this.ctx.createOscillator();
       const swellFilter = this.ctx.createBiquadFilter();
@@ -342,7 +302,7 @@ class SoundEngine {
       swellFilter.frequency.exponentialRampToValueAtTime(5500, now + 3.9);
 
       swellGain.gain.setValueAtTime(0, now + 1.0);
-      swellGain.gain.linearRampToValueAtTime(0.25, now + 3.8);
+      swellGain.gain.linearRampToValueAtTime(0.22, now + 3.8);
       swellGain.gain.exponentialRampToValueAtTime(0.0001, now + 5.5);
 
       swellOsc1.connect(swellFilter);
@@ -354,20 +314,8 @@ class SoundEngine {
       swellOsc2.start(now + 1.0);
       swellOsc1.stop(now + 5.6);
       swellOsc2.stop(now + 5.6);
-
-      // Smoothly stop the background AI ambient drone as the screen reaches pure white
-      setTimeout(() => {
-        this.stopAIAmbient();
-      }, 4200);
-    } catch {}
-  }
-
-  public playTrailerSequenceFromStart() {
-    if (this.trailerAudio) {
-      this.trailerAudio.currentTime = 0;
-      this.trailerAudio.muted = false;
-      this.isMuted = false;
-      this.trailerAudio.play().catch(() => {});
+    } catch {
+      /* ignore */
     }
   }
 }
