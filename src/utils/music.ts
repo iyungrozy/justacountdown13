@@ -48,6 +48,8 @@ class MusicEngine {
   private started = false;
   private volume = 0.35;
   private muted = false;
+  /** True after the first real user gesture (autoplay policy). */
+  private userActivated = false;
   private videoId = DEFAULT_MUSIC_VIDEO_ID;
 
   /** Boot the YouTube player as soon as the host element exists. */
@@ -84,6 +86,7 @@ class MusicEngine {
 
   /** Call from a real user gesture: this is what makes audible playback legal. */
   public unlock(): void {
+    this.userActivated = true;
     if (!this.started) this.start();
     if (!this.player || !this.ready) return;
     try {
@@ -91,8 +94,10 @@ class MusicEngine {
         this.player.mute();
         return;
       }
-      this.player.unMute();
+      // The player is already running muted; unmuting inside the gesture is
+      // what makes it audible without another buffering cycle.
       this.player.playVideo();
+      this.player.unMute();
     } catch {
       /* ignore */
     }
@@ -104,7 +109,7 @@ class MusicEngine {
       this.player.setVolume(Math.round(this.volume * 100));
       if (this.muted) {
         this.player.mute();
-      } else {
+      } else if (this.userActivated) {
         this.player.unMute();
       }
     } catch {
@@ -125,6 +130,7 @@ class MusicEngine {
           videoId: this.videoId,
           playerVars: {
             autoplay: 1,
+            mute: 1,
             controls: 0,
             disablekb: 1,
             fs: 0,
@@ -140,11 +146,12 @@ class MusicEngine {
               this.ready = true;
               try {
                 event.target.setVolume(Math.round(this.volume * 100));
-                if (this.muted) {
-                  event.target.mute();
-                } else {
+                // Start muted: muted autoplay is always allowed, so the score
+                // is already running when the first gesture unmutes it.
+                event.target.mute();
+                event.target.playVideo();
+                if (this.userActivated && !this.muted) {
                   event.target.unMute();
-                  event.target.playVideo();
                 }
               } catch {
                 /* ignore */
